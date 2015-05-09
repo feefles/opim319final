@@ -125,17 +125,21 @@ to evolve
   let breeding 1 / genetic-pool-size
   foreach sort-on [(- score)] turtles [ ;; sort in decreasing order (highest scores first)
     if ctr < threshold [ 
-      ;; FIRST TIME
-      let breeding-partner one-of turtles ;;pick a random partner     
-      set new-char []
-      (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
-        ifelse random-float 1 > .5 [
-          set new-char lput ?1 new-char
-        ] [
-        set new-char lput ?2 new-char
-        ]
-      ])
-      set new-population-characteristics lput (array:from-list new-char) new-population-characteristics
+      let breeding_ctr 0
+      while [breeding_ctr < breeding] [
+        ;; FIRST TIME
+        let breeding-partner one-of turtles ;;pick a random partner     
+        set new-char []
+        (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
+          ifelse random-float 1 > .5 [
+            set new-char lput ?1 new-char
+          ] [
+          set new-char lput ?2 new-char
+          ]
+        ])
+        set new-population-characteristics lput (array:from-list new-char) new-population-characteristics
+        set breeding_ctr breeding_ctr + 1
+      ]     
       set ctr ctr + 1
     ]
   ]
@@ -154,24 +158,42 @@ to evolve
     if array:item ? 0 = ones [
        create-ones   (1) [ 
          set color red 
-         set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
-         set lie-prob (random-float .1) + array:item ? 2 - .03 
+         ifelse random-float 1 < mutation-chance [ ;;mutate
+           set coop-prob random-float 1
+           set lie-prob random-float 1
+         ]
+         [
+           set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
+           set lie-prob (random-float .1) + array:item ? 2 - .03 
+         ]
        ]
       set global-num-turtles-red global-num-turtles-red + 1
     ]
     if array:item ? 0 = twos [
        create-twos   (1) [ 
          set color yellow 
-         set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
-         set lie-prob (random-float .1) + array:item ? 2 - .03 
+         ifelse random-float 1 < mutation-chance [ ;;mutate
+           set coop-prob random-float 1
+           set lie-prob random-float 1
+         ]
+         [
+           set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
+           set lie-prob (random-float .1) + array:item ? 2 - .03 
+         ]
        ]
        set global-num-turtles-yellow global-num-turtles-yellow + 1
     ]
     if array:item ? 0 = threes [
        create-threes   (1) [ 
          set color green 
-         set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
-         set lie-prob (random-float .1) + array:item ? 2 - .03 
+         ifelse random-float 1 < mutation-chance [ ;;mutate
+           set coop-prob random-float 1
+           set lie-prob random-float 1
+         ]
+         [
+           set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
+           set lie-prob (random-float .1) + array:item ? 2 - .03 
+         ]
        ]
        set global-num-turtles-green global-num-turtles-green + 1   
     ]
@@ -210,6 +232,15 @@ to go
   ask partnered-turtles [play-a-round]
   do-scoring
   tick
+end
+
+to evolve-run
+  tick
+  while [ticks mod epoch-length != 0] [
+    go
+  ]
+  evolve
+  
 end
 
 to clear-last-round
@@ -809,10 +840,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-557
-182
-753
-215
+543
+160
+739
+193
 default-prob-lie-green
 default-prob-lie-green
 0
@@ -864,7 +895,7 @@ CHOOSER
 genetic-pool-size
 genetic-pool-size
 0.1 0.25 0.5
-2
+1
 
 SLIDER
 526
@@ -875,11 +906,39 @@ mutation-chance
 mutation-chance
 0
 1
-0.6
+0
 .01
 1
 NIL
 HORIZONTAL
+
+INPUTBOX
+523
+593
+678
+653
+epoch-length
+1000
+1
+0
+Number
+
+BUTTON
+568
+216
+668
+249
+NIL
+evolve-run
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 # Social Memory, Reputation, and Deception in the Multi-Player Iterated Prisoner's Dilemma
