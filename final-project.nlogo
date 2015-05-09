@@ -119,38 +119,27 @@ to evolve
   let new-population-characteristics []
   ;; each entry in form: [breed#, coop-prob, lie-prob]
   
-  let threshold global-num-turtles / 2 ;;only breed with the top half of performers
+  let threshold global-num-turtles * genetic-pool-size ;;only breed with the top % of performers
   let ctr 0 
   let new-char []
-  
+  let breeding 1 / genetic-pool-size
   foreach sort-on [(- score)] turtles [ ;; sort in decreasing order (highest scores first)
-   if ctr < threshold [ 
-     ;; FIRST TIME
-     let breeding-partner one-of turtles ;;pick a random partner     
-     set new-char []
-     (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
-       ifelse random-float 1 > .5 [
-         set new-char lput ?1 new-char
-       ] [
-         set new-char lput ?2 new-char
-       ]
-     ])
-     set new-population-characteristics lput (array:from-list new-char) new-population-characteristics
-     
-     ;; SECOND TIME, I APOLOGIZE FOR HACKY, but for 2x this is sort of okay......
-     set breeding-partner one-of turtles ;;pick a random partner     
-     set new-char []
-     (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
-       ifelse random-float 1 > .5 [
-         set new-char lput ?1 new-char
-       ] [
-         set new-char lput ?2 new-char
-       ]
-     ])
-     set new-population-characteristics lput (array:from-list new-char) new-population-characteristics
-     set ctr ctr + 1
-   ]
+    if ctr < threshold [ 
+      ;; FIRST TIME
+      let breeding-partner one-of turtles ;;pick a random partner     
+      set new-char []
+      (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
+        ifelse random-float 1 > .5 [
+          set new-char lput ?1 new-char
+        ] [
+        set new-char lput ?2 new-char
+        ]
+      ])
+      set new-population-characteristics lput (array:from-list new-char) new-population-characteristics
+      set ctr ctr + 1
+    ]
   ]
+
   print new-population-characteristics
   clear-turtles
   
@@ -171,15 +160,15 @@ to evolve
       set global-num-turtles-red global-num-turtles-red + 1
     ]
     if array:item ? 0 = twos [
-       create-ones   (1) [ 
+       create-twos   (1) [ 
          set color yellow 
          set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
          set lie-prob (random-float .1) + array:item ? 2 - .03 
        ]
        set global-num-turtles-yellow global-num-turtles-yellow + 1
     ]
-    if array:item ? 0 = ones [
-       create-ones   (1) [ 
+    if array:item ? 0 = threes [
+       create-threes   (1) [ 
          set color green 
          set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
          set lie-prob (random-float .1) + array:item ? 2 - .03 
@@ -613,7 +602,7 @@ CHOOSER
 consult-agentset
 consult-agentset
 "own memory" "breed cohort" "proximal cohort" "all turtles"
-1
+0
 
 SLIDER
 45
@@ -624,7 +613,7 @@ num-turtles-red
 num-turtles-red
 0
 100
-64
+50
 5
 1
 NIL
@@ -638,7 +627,7 @@ CHOOSER
 lying-heuristic
 lying-heuristic
 "never" "randomly" "lie to outsiders" "previously defected" "previously lied"
-0
+2
 
 CHOOSER
 39
@@ -696,7 +685,7 @@ default-prob-cooperate-red
 default-prob-cooperate-red
 0
 1
-1
+0.2
 0.05
 1
 NIL
@@ -721,7 +710,7 @@ default-prob-lie-red
 default-prob-lie-red
 0
 .95
-0.9
+0.5
 0.1
 1
 NIL
@@ -753,7 +742,7 @@ num-turtles-yellow
 num-turtles-yellow
 0
 100
-54
+50
 1
 1
 NIL
@@ -768,7 +757,7 @@ num-turtles-green
 num-turtles-green
 0
 100
-64
+50
 1
 1
 NIL
@@ -783,7 +772,7 @@ default-prob-cooperate-yellow
 default-prob-cooperate-yellow
 0
 1
-0.4
+0.6
 .05
 1
 NIL
@@ -813,7 +802,7 @@ default-prob-lie-yellow
 default-prob-lie-yellow
 0
 1
-0.9
+0.5
 .05
 1
 NIL
@@ -828,8 +817,66 @@ default-prob-lie-green
 default-prob-lie-green
 0
 1
-0.9
+0.5
 .05
+1
+NIL
+HORIZONTAL
+
+MONITOR
+266
+443
+427
+488
+NIL
+global-num-turtles-red
+17
+1
+11
+
+MONITOR
+267
+509
+445
+554
+NIL
+global-num-turtles-yellow
+17
+1
+11
+
+MONITOR
+266
+583
+441
+628
+NIL
+global-num-turtles-green
+17
+1
+11
+
+CHOOSER
+521
+458
+659
+503
+genetic-pool-size
+genetic-pool-size
+0.1 0.25 0.5
+2
+
+SLIDER
+526
+525
+698
+558
+mutation-chance
+mutation-chance
+0
+1
+0.6
+.01
 1
 NIL
 HORIZONTAL
