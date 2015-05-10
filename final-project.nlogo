@@ -19,6 +19,12 @@ globals [
   global-num-turtles-red
   global-num-turtles-yellow
   global-num-turtles-green
+  
+  global-num-cooperating-red
+  global-num-cooperating-yellow
+  global-num-cooperating-green
+  
+  
 ]
 
 ;; Define turtle-specific data
@@ -116,7 +122,7 @@ end
 
 
 ;;------------ EVOLUTION PROCEDURE -----------
-;;breed each of the top half twice with a random partner
+
 to evolve
   let new-population-characteristics []
   ;; each entry in form: [breed#, coop-prob, lie-prob, forgiveness]
@@ -224,8 +230,6 @@ to evolve
     set positive-recommenders nobody
     set negative-recommenders nobody
     
-    ;; Initialize partner history lists -- default to
-    ;; neutral reputation for every turtle
     set partner-defection-history []
     set partner-lying-history []
     repeat (count turtles) [
@@ -314,10 +318,18 @@ to select-action
   ][
     set defect-now? (random-float 1 > coop-prob)
   ]
-
-  
   if (not defect-now?) [
     set global-num-cooperating (global-num-cooperating + 1)
+    ;; This isn't beautiful, but it works
+    if breed = ones [
+      set global-num-cooperating-red (global-num-cooperating-red + 1)
+    ]
+    if breed = twos [
+      set global-num-cooperating-yellow (global-num-cooperating-yellow + 1)
+    ]
+    if breed = threes [
+      set global-num-cooperating-green (global-num-cooperating-green + 1)
+    ]
   ]
 end
 
@@ -340,12 +352,10 @@ end
 
 to-report ask-reputation [agents]
   let reputation []
-  
   foreach sort agents [
     let defection-recommendation (item ([who] of partner) ([partner-defection-history] of ?))
     let lying-recommendation (item ([who] of partner) ([partner-lying-history] of ?))
     
-      
     ifelse (lie-to-me? ?) [ ;;lie to the agent
       ifelse defection-recommendation > 0 [ ;; do the opposite 
         set negative-recommenders (turtle-set negative-recommenders ?)
@@ -507,12 +517,37 @@ to-report percent-cooperating
   ]
 end
 
+to-report red-cooperating
+  ifelse global-num-games > 0 [
+    
+  ][
+    report 0
+  ]
+end
+
 to-report percent-lying
   ifelse global-num-consulted > 0 [
     report global-num-lying / global-num-consulted
   ][
     report 0
   ]
+end
+
+to-report avg-cooperation
+  ;; in form [red, yellow, green]
+  report (list (precision (mean [coop-prob] of ones) 3) (precision (mean [coop-prob] of twos) 3) (precision (mean [coop-prob] of threes) 3))
+end
+
+to-report avg-lie
+  ;; in form [red, yellow, green]
+  report (list (precision (mean [lie-prob] of ones) 3) (precision (mean [lie-prob] of twos) 3) (precision (mean [lie-prob] of threes) 3))
+  
+end
+
+to-report avg-forgiveness
+  ;; in form [red, yellow, green]
+  report (list (precision (mean [forgiveness] of ones) 3) (precision (mean [forgiveness] of twos) 3) (precision (mean [forgiveness] of threes) 3))
+  
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -577,10 +612,10 @@ NIL
 1
 
 CHOOSER
-42
-487
-206
-532
+11
+484
+175
+529
 consult-agentset
 consult-agentset
 "own memory" "breed cohort" "all turtles"
@@ -602,20 +637,20 @@ NIL
 HORIZONTAL
 
 CHOOSER
-40
-552
-210
-597
+9
+549
+179
+594
 lying-heuristic
 lying-heuristic
 "never" "randomly" "lie to outsiders"
-2
+1
 
 PLOT
-44
-316
-244
-466
+13
+313
+213
+463
 Cooperation
 Iterations
 % cooperating
@@ -627,7 +662,8 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -5298144 true "" "plot percent-cooperating"
+"default" 1.0 0 -16777216 true "" "plot percent-cooperating"
+"pen-1" 1.0 0 -2674135 true "" "plot red-cooperating"
 
 SLIDER
 12
@@ -638,7 +674,7 @@ prob-cooperate-red
 prob-cooperate-red
 0
 1
-0.45
+0.2
 0.05
 1
 NIL
@@ -653,7 +689,7 @@ prob-lie-red
 prob-lie-red
 0
 .95
-0.6
+0.8
 0.05
 1
 NIL
@@ -715,7 +751,7 @@ prob-cooperate-yellow
 prob-cooperate-yellow
 0
 1
-0.85
+0.8
 .05
 1
 NIL
@@ -730,7 +766,7 @@ prob-cooperate-green
 prob-cooperate-green
 0
 1
-0.6
+0.5
 .05
 1
 NIL
@@ -745,7 +781,7 @@ prob-lie-yellow
 prob-lie-yellow
 0
 1
-0.35
+0.2
 .05
 1
 NIL
@@ -767,53 +803,53 @@ NIL
 HORIZONTAL
 
 MONITOR
-262
-316
-423
-361
-NIL
+231
+313
+309
+358
+red turtles
 global-num-turtles-red
 17
 1
 11
 
 MONITOR
-260
-378
-438
-423
-NIL
+229
+375
+311
+420
+yellow turtles
 global-num-turtles-yellow
 17
 1
 11
 
 MONITOR
-258
-434
-433
-479
-NIL
+227
+431
+314
+476
+green turtles
 global-num-turtles-green
 17
 1
 11
 
 CHOOSER
-466
-317
-604
-362
+572
+269
+710
+314
 genetic-pool-size
 genetic-pool-size
 0.1 0.25 0.5
 2
 
 SLIDER
-467
-378
-639
-411
+573
+330
+745
+363
 mutation-chance
 mutation-chance
 0
@@ -825,10 +861,10 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-466
-423
-621
-483
+572
+375
+727
+435
 epoch-length
 100
 1
@@ -853,14 +889,14 @@ NIL
 1
 
 CHOOSER
-467
-499
-617
-544
+573
+451
+723
+496
 breeding-style
 breeding-style
 "random-partner" "cohort" "genetic-pool"
-0
+1
 
 SLIDER
 14
@@ -906,6 +942,39 @@ forgiveness-green
 1
 NIL
 HORIZONTAL
+
+MONITOR
+342
+312
+469
+357
+NIL
+avg-cooperation
+2
+1
+11
+
+MONITOR
+342
+376
+468
+421
+NIL
+avg-lie
+17
+1
+11
+
+MONITOR
+344
+434
+520
+479
+NIL
+avg-forgiveness
+17
+1
+11
 
 @#$#@#$#@
 # Social Memory, Reputation, and Deception in the Multi-Player Iterated Prisoner's Dilemma
