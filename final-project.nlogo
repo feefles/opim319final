@@ -517,9 +517,24 @@ to-report percent-cooperating
   ]
 end
 
+;; is there a better way to do this in netlogo? 
 to-report red-cooperating
   ifelse global-num-games > 0 [
-    
+    report global-num-cooperating-red / global-num-games
+  ][
+    report 0
+  ]
+end
+to-report yellow-cooperating
+  ifelse global-num-games > 0 [
+    report global-num-cooperating-yellow / global-num-games
+  ][
+    report 0
+  ]
+end
+to-report green-cooperating
+  ifelse global-num-games > 0 [
+    report global-num-cooperating-green / global-num-games
   ][
     report 0
   ]
@@ -664,6 +679,8 @@ false
 PENS
 "default" 1.0 0 -16777216 true "" "plot percent-cooperating"
 "pen-1" 1.0 0 -2674135 true "" "plot red-cooperating"
+"pen-2" 1.0 0 -4079321 true "" "plot yellow-cooperating"
+"pen-3" 1.0 0 -13840069 true "" "plot green-cooperating"
 
 SLIDER
 12
@@ -751,7 +768,7 @@ prob-cooperate-yellow
 prob-cooperate-yellow
 0
 1
-0.8
+1
 .05
 1
 NIL
@@ -781,7 +798,7 @@ prob-lie-yellow
 prob-lie-yellow
 0
 1
-0.2
+1
 .05
 1
 NIL
@@ -796,7 +813,7 @@ prob-lie-green
 prob-lie-green
 0
 1
-0.5
+1
 .05
 1
 NIL
@@ -977,24 +994,23 @@ avg-forgiveness
 11
 
 @#$#@#$#@
-# Social Memory, Reputation, and Deception in the Multi-Player Iterated Prisoner's Dilemma
+# Evolving a Socially Conscious Population in the Multi-Player Iterated Prisoner's Dilemma
 
-Max McCarthy - 9 May 2014
-OPIM 319 Term Project, University of Pennsylvania
+Evelyn Fifi Yeung - May 10, 2015
+OPIM 319 Term Project
 
-## WHAT IS IT?
+## Background
 
-This is an extension of the *n*-player iterated prisoner's dilemma, where agents' decisions about cooperation and defection are informed not just by their own memory of their `partner`'s history of play (as in a tit-for-tat strategy), but also have access to the social knowledge of a set of other agents, all of whom are also playing the game.
+This is an extension of Max McCarthy's OPIM 319 Project from Spring, 2014. To summarize, his project added social awareness to the IPD game. Agents can play against other agents in their vicinity, but they draw on the opinions of others to decide on their strategy. They could choose who to draw information from (in this version, I have restricted it to their own breed, all the turtles, or their own memory). 
 
-The precise specification of this set (or "cohort") is determined by the user, who can select among consulting no other agents, all other agents, or agents determined by rules like same breed or geographic distance, which are rudimentary ways of defining small societies. 
+His original model includes a lying heuristic, in which you can define when an agent will lie about the reputation of another. While it is included, I always ran the "randomly" lie option, since it emphasizes the importance of that trait in the population. 
 
-Agents make strategic decisions based on the input of their cohort, so it is vital that the signal/noise ratio is as high as possible. Unfortunately, however, other agents may have various motivations for being dishonest—they may have faulty memories, be apprehensive or unable to communicate with thouse outside of their communities, or might hold a grudge based on previous interactions.
+This project builds upon this model by adding evolution. It aims to see how cooperation can evolve to dominance in a population. There is a simple genetic algorithm that helps breed the turtles. The "genome" of the turtles is encapsulated in 3 properties: their cooperation probability, lying probability, and forgiveness. The initial states can be set. On each iteration, the entire population is evaluated by their total score. A group of that will be taken and bred, according to various methods. The algorithm attempts to mimic a traditional evolutionary algorithm, in that there is crossover: there will always be two parents for a new agent, and there can be mutation introduced. 
 
-This model traces the amount of cooperation that is sustained, and the amount of deceit that takes place, as these parameters are varied. 
-
-## HOW IT WORKS
+## The Game
 
 ### THE ITERATED PRISONER'S DILEMMA
+(Adapted from Max)
 
 The game played by each agent when they are `partnered` (determined spatially based on random movements) is a generic form of the prisoner's dilemma, using Robert Axelrod's standard payoff scheme:
 
@@ -1005,10 +1021,13 @@ The game played by each agent when they are `partnered` (determined spatially ba
 <tr><td align=right  style="padding:5px"><b>Defect</b></td><td align=center  style="padding:5px">5,0</td><td align=center  style="padding:5px">1,1</td></tr>
 </table>
 
-Each agent has a its own `partner-defection-history`, which is a `who`-indexed list of integers representing the number of times the `partner` has cooperated or defected as a net positive or net negative amount. Each agent's history is initialized to `0`, and following each interaction the history is incremented by `1` if the agent cooperated, and decremented by `1` if the agent defected. The other `turtles-own` value `partner-lying-history` acts similarly, but traces the reputation of other agents for accurately predicting the behavior of the `partner`.
+Each agent keeps track of which agents have cooperated or defected when playing them, and which agents have lied to them. Agents also have default probabilities for cooperating. If the agent hears a positive recommendation from others, it will cooperate according to its default probability. 
+
+You can play this without evolution to see how the population would change on its own, then you can play with `evolve-run`, in which case the population will evolve every `epoch-length` ticks.
+
 
 ### CONSULTING A COHORT
-
+(Adapted from Max)
 Agents can be programmed to ask a certain `agentset` about the reputation of their `partner`, and then choose strategies according to the feedback they receive. There are several options for the `agentset` to interrogate:
 
 >**`"own memory"`**
@@ -1017,48 +1036,32 @@ Agents do not consult any other individuals when determining their action, only 
 >**`"breed cohort"`**
 Agents consult only those individuals of the same breed as themself. This could represent some sort of cultural, genetic, or linguistic relation amongst agents, simulating the role that smaller networks play in sharing information.
 
->**`"proximal cohort"`**
-Agents consult only those individuals within a certain radius, who are likely to have interacted with each other previously. This could simulate geographic proximity, where inviduals who are not necessarily otherwise related can exchange information for mutual benefit.
-
 >**`"all turtles"`**
 As implied, agents consult all other `turtles` for information.
 
-Agents will sum the feedback from each agent in the `agentset` in order to select an action. If the sum is a net positive (or neutral) recommendation then the agent will play according to its `default-prob-cooperate`, otherwise it will defect.
+Agents gather information from the specified agentset. However, they also have a forgiveness factor built in. Even in the event that the recommendation was negative, the agent may still cooperate, depending on how forgiving they are. In this case, forgiveness is a threshold for how badly recommended someone can be before they decide to defect. It would also be interesting to explore forgiveness as a percentage - an agent could forgive a bad player a certain number of times.
 
-The agent remembers which members of its cohort gave a positive recommendation and which gave a negative recommendation, and based on the `partner`'s move, will update its internal history of the agents who lied according to whether they accurately predicted the `partner`'s move. 
+### EVOLVING
+There are several parameters governing the evolution. 
 
-They key feature here is that reputation does not predict present behavior, especially when each agent is acting based on incomplete information about its `partner`. Agents who lie may nonetheless accurately predict behavior, and agents who tell the truth may be wrong. There is no way to determine intention outside observed behavior, so the agents who are found to be "lying" are determined based on *subjective* and *random* factors. The inability of any agent to access an objective viewpoint is a key reason why lying is so destabilizing, since it is impossible to perfectly know when it occurs.
+####genetic-pool-size
+When breeding, this is the percentage of the population that is guaranteed to be a parent. It is always taken as the top n scorers according to the fitness function, which is the score in this case. Depending on the size, these agents may be bred multiple times with various partners. This represents how 'strict' the evolution is.  
 
-### LYING HEURISTICS
-
-When consulted by an agent about its `partner`, members of the particular `consult-agentset` are asked about their history with `partner` and decide whether to tell the truth, or to lie to the inquiring agent according to the following heuristics:
-
->**`"never"`**
-Agents will always tell the truth.
-
->**`"randomly"`**
-Agents will decide to lie with probability 0.5, and will select with equal likelihood one of -1, 0, or +1 to report as their history with the `partner`. Decisions are made independently of other agents. (Note: if the `consult-agentset` is `"own memory"` then the agent will randomly lie to itself, which could present strange results.)
-
->**`"lie to outsiders"`**
-Agents will lie if they are of a different breed than the agent asking, and will select with equal likelihood one of -1, 0, or +1 to report as their history with the `partner`. Decisions are made independently of other agents.
-
->**`"previously defected"`**
-Agents will lie if they remember that the agent asking has defected against them a net positive number of times, and will select with equal likelihood one of -1, 0, or +1 to report as their history with the `partner`. Decisions are made independently of other agents.
-
->**`"previously lied"`**
-Agents will lie if they remember that the agent asking has lied to them a net positive number of times, and will select with equal likelihood one of -1, 0, or +1 to report as their history with the `partner`. Decisions are made independently of other agents.
+####mutation-chance
+When breeding, there is a chance of mutation. This is good, since it introduces variation into the population, much like true evolution. This is the percent chance that a child is mutated. In this case, the mutation implies all the genomes for the child are completely randomized.
 
 
-### DEFECTION HEURISTICS
+####breeding-style
+When breeding, there are various methods of choosing a partner 
+>**`"random-partner"`**
+The partner is randomly chosen from the entire turtle population
 
->**`"defection reputation"`**
-Agents will consider the `partner`'s reputation for defection, and punish `partner`s that defect often with a defection.
+>**`"cohort"`**
+The partner is randomly chosen from the same cohort
 
->**`"lying reputation"`**
-Agents will consider the `partner`'s reputation for lying, and punish `partner`s that lie often (subjectively determined) with a defection.
+>**`"genetic-pool"`**
+The partner is randomly chosen from the pool, which is defined by the `genetic-pool-size`
 
->**`"defection or lying"`**
-Agents will consider both the `partner`'s reputation for defection and for lying, and will add the two values together to determine the overall reputation of their `partner`, punishing accordingly.
 
 ## THINGS TO NOTICE
 
