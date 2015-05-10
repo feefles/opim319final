@@ -97,18 +97,18 @@ to make-breeds
   ;; Create 5 breeds of turtle and color them the same
   create-ones   (global-num-turtles-red) [ 
     set color red 
-    set coop-prob (random-float .1) + default-prob-cooperate-red - .05 ; random float on range of .1 around default
-    set lie-prob (random-float .1) + default-prob-lie-red - .05 
+    set coop-prob (random-float .1) + prob-cooperate-red - .05 ; random float on range of .1 around default
+    set lie-prob (random-float .1) + prob-lie-red - .05 
     ]
   create-twos   (global-num-turtles-yellow) [
      set color yellow 
-     set coop-prob (random-float .1) + default-prob-cooperate-yellow - .05 ; random integer on range of 10 around default prob
-     set lie-prob (random-float .1) + default-prob-lie-yellow - .05 
+     set coop-prob (random-float .1) + prob-cooperate-yellow - .05 ; random integer on range of 10 around default prob
+     set lie-prob (random-float .1) + prob-lie-yellow - .05 
      ]
   create-threes (global-num-turtles-green) [
      set color green 
-     set coop-prob (random-float .1) + default-prob-cooperate-green - .05 ; random integer on range of 10 around default prob
-     set lie-prob (random-float .1) + default-prob-lie-green - .05     
+     set coop-prob (random-float .1) + prob-cooperate-green - .05 ; random integer on range of 10 around default prob
+     set lie-prob (random-float .1) + prob-lie-green - .05     
      ]
 end
 
@@ -123,18 +123,26 @@ to evolve
   let ctr 0 
   let new-char []
   let breeding 1 / genetic-pool-size
+  
+  ;;this is pretty ridiculous, but I'm not sure how to do this properly
+  let sorted_pool sort-on [(- score)] turtles;;get sorted pool, then convert to array
+  let min-genetic-pool-score [score] of (array:item (array:from-list sorted_pool) threshold)
+  let genetic-pool filter [[score] of ? > min-genetic-pool-score] sorted_pool ;;I'm not sure how to get the first k elems in list...
+  
   foreach sort-on [(- score)] turtles [ ;; sort in decreasing order (highest scores first)
     if ctr < threshold [ 
       let breeding_ctr 0
       while [breeding_ctr < breeding] [
-        ;; FIRST TIME
-        let breeding-partner one-of turtles ;;pick a random partner     
+        let breeding-partner 0
+        if breeding-style = "random-partner" [set breeding-partner one-of turtles ]   ;;random partner from population
+        if breeding-style = "cohort" [set breeding-partner one-of [breed] of ?] ;;random partner of the same breed
+        if breeding-style = "genetic-pool" [set breeding-partner one-of genetic-pool] ;;random partner from gene pool
         set new-char []
         (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
           ifelse random-float 1 > .5 [
             set new-char lput ?1 new-char
           ] [
-          set new-char lput ?2 new-char
+            set new-char lput ?2 new-char
           ]
         ])
         set new-population-characteristics lput (array:from-list new-char) new-population-characteristics
@@ -144,7 +152,7 @@ to evolve
     ]
   ]
 
-  print new-population-characteristics
+  ;;print new-population-characteristics
   clear-turtles
   
  ;;NOW CREATE EVOLVED SPECIES
@@ -158,7 +166,7 @@ to evolve
     if array:item ? 0 = ones [
        create-ones   (1) [ 
          set color red 
-         ifelse random-float 1 < mutation-chance [ ;;mutate
+         ifelse (random-float 1) < mutation-chance [ ;;mutate
            set coop-prob random-float 1
            set lie-prob random-float 1
          ]
@@ -565,9 +573,9 @@ to-report percent-accused-lying
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-743
+750
 25
-1126
+1133
 429
 16
 16
@@ -592,10 +600,10 @@ ticks
 30.0
 
 BUTTON
-293
-214
-359
-247
+12
+215
+78
+248
 NIL
 setup
 NIL
@@ -609,10 +617,10 @@ NIL
 1
 
 BUTTON
-379
-214
-442
-247
+98
+215
+161
+248
 NIL
 go
 T
@@ -636,10 +644,10 @@ consult-agentset
 0
 
 SLIDER
-45
-55
-217
-88
+14
+51
+186
+84
 num-turtles-red
 num-turtles-red
 0
@@ -688,32 +696,13 @@ false
 PENS
 "default" 1.0 0 -5298144 true "" "plot percent-cooperating"
 
-PLOT
-261
-273
-461
-423
-Lying
-Iterations
-% lying
-0.0
-10.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -12087248 true "" "plot percent-lying"
-"pen-1" 1.0 0 -14454117 true "" "plot percent-accused-lying"
-
 SLIDER
-42
+12
 104
-275
+245
 137
-default-prob-cooperate-red
-default-prob-cooperate-red
+prob-cooperate-red
+prob-cooperate-red
 0
 1
 0.2
@@ -722,36 +711,26 @@ default-prob-cooperate-red
 NIL
 HORIZONTAL
 
-TEXTBOX
-476
-271
-626
-425
-green: objective amount of lying, i.e. the percent of consulted agents who \"decide\" to lie based on the lying-heuristic\n\nblue: subjective amount of lying, i.e. the percent of consulted agents whose advice about the partner's reputation was incorrect
-11
-0.0
-1
-
 SLIDER
-42
+12
 155
-219
+189
 188
-default-prob-lie-red
-default-prob-lie-red
+prob-lie-red
+prob-lie-red
 0
 .95
-0.5
+0.6
 0.1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-466
-214
-537
-247
+185
+215
+256
+248
 NIL
 evolve
 NIL
@@ -765,9 +744,9 @@ NIL
 1
 
 SLIDER
-299
+250
 50
-472
+423
 83
 num-turtles-yellow
 num-turtles-yellow
@@ -780,9 +759,9 @@ NIL
 HORIZONTAL
 
 SLIDER
-515
+505
 50
-687
+677
 83
 num-turtles-green
 num-turtles-green
@@ -795,70 +774,70 @@ NIL
 HORIZONTAL
 
 SLIDER
-301
-110
-548
-143
-default-prob-cooperate-yellow
-default-prob-cooperate-yellow
-0
-1
-0.6
-.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-570
-109
-814
-142
-default-prob-cooperate-green
-default-prob-cooperate-green
-0
-1
-0.4
-.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-299
-158
+250
+104
 497
-191
-default-prob-lie-yellow
-default-prob-lie-yellow
+137
+prob-cooperate-yellow
+prob-cooperate-yellow
 0
 1
-0.5
+0.2
 .05
 1
 NIL
 HORIZONTAL
 
 SLIDER
-543
-160
-739
-193
-default-prob-lie-green
-default-prob-lie-green
+504
+105
+748
+138
+prob-cooperate-green
+prob-cooperate-green
 0
 1
-0.5
+0.15
+.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+250
+157
+448
+190
+prob-lie-yellow
+prob-lie-yellow
+0
+1
+0.8
+.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+502
+157
+698
+190
+prob-lie-green
+prob-lie-green
+0
+1
+0.75
 .05
 1
 NIL
 HORIZONTAL
 
 MONITOR
-266
-443
-427
-488
+262
+272
+423
+317
 NIL
 global-num-turtles-red
 17
@@ -866,10 +845,10 @@ global-num-turtles-red
 11
 
 MONITOR
-267
-509
-445
-554
+260
+334
+438
+379
 NIL
 global-num-turtles-yellow
 17
@@ -877,10 +856,10 @@ global-num-turtles-yellow
 11
 
 MONITOR
-266
-583
-441
-628
+258
+390
+433
+435
 NIL
 global-num-turtles-green
 17
@@ -888,20 +867,20 @@ global-num-turtles-green
 11
 
 CHOOSER
-521
-458
-659
-503
+466
+273
+604
+318
 genetic-pool-size
 genetic-pool-size
 0.1 0.25 0.5
-1
+2
 
 SLIDER
-526
-525
-698
-558
+467
+334
+639
+367
 mutation-chance
 mutation-chance
 0
@@ -913,10 +892,10 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-523
-593
-678
-653
+466
+379
+621
+439
 epoch-length
 1000
 1
@@ -924,10 +903,10 @@ epoch-length
 Number
 
 BUTTON
-568
-216
-668
-249
+278
+215
+378
+248
 NIL
 evolve-run
 T
@@ -939,6 +918,16 @@ NIL
 NIL
 NIL
 1
+
+CHOOSER
+467
+455
+617
+500
+breeding-style
+breeding-style
+"random-partner" "cohort" "genetic-pool"
+2
 
 @#$#@#$#@
 # Social Memory, Reputation, and Deception in the Multi-Player Iterated Prisoner's Dilemma
