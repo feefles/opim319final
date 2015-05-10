@@ -89,12 +89,8 @@ to make-turtles
     
     ;; Initialize partner history lists -- default to
     ;; neutral reputation for every turtle
-    set partner-defection-history []
-    set partner-lying-history []
-    repeat (count turtles) [
-      set partner-defection-history (lput 0 partner-defection-history)
-      set partner-lying-history (lput 0 partner-lying-history)
-    ]
+    set partner-defection-history array:from-list n-values (global-num-turtles + 2) [0]
+    set partner-lying-history array:from-list n-values (global-num-turtles + 2) [0]
   ]
 end
 
@@ -230,13 +226,8 @@ to evolve
     set positive-recommenders nobody
     set negative-recommenders nobody
     
-    set partner-defection-history []
-    set partner-lying-history []
-    repeat (count turtles) [
-      set partner-defection-history (lput 0 partner-defection-history)
-      set partner-lying-history (lput 0 partner-lying-history)
-    ]
-  
+    set partner-defection-history array:from-list n-values (global-num-turtles + 1) [0]
+    set partner-lying-history array:from-list n-values (global-num-turtles + 1) [0]
   ]
 
   reset-ticks
@@ -353,8 +344,9 @@ end
 to-report ask-reputation [agents]
   let reputation []
   foreach sort agents [
-    let defection-recommendation (item ([who] of partner) ([partner-defection-history] of ?))
-    let lying-recommendation (item ([who] of partner) ([partner-lying-history] of ?))
+    
+    let defection-recommendation array:item ([partner-defection-history] of ?) ([who] of partner)
+    let lying-recommendation array:item ([partner-lying-history] of ?) ([who] of partner)
     
     ifelse (lie-to-me? ?) [ ;;lie to the agent
       ifelse defection-recommendation > 0 [ ;; do the opposite 
@@ -374,7 +366,7 @@ to-report ask-reputation [agents]
       set global-num-lying (global-num-lying + 1)
 
     ] [
-      ifelse (item ([who] of partner) ([partner-defection-history] of ?)) < 0 [
+      ifelse (defection-recommendation < 0) [
          set negative-recommenders (turtle-set negative-recommenders ?)
          set reputation lput -1 reputation
       ]
@@ -382,7 +374,7 @@ to-report ask-reputation [agents]
           set positive-recommenders (turtle-set positive-recommenders ?)
           set reputation lput 1 reputation
       ]
-       ifelse (item ([who] of partner) ([partner-lying-history] of ?)) < 0 [
+       ifelse (lying-recommendation) < 0 [
          set negative-recommenders (turtle-set negative-recommenders ?)
          set reputation lput -1 reputation
       ]
@@ -447,56 +439,50 @@ end
 
 ;; Update agent's memory of others' cooperation and lying
 to update-histories
-  let old-defection-history (item ([who] of partner) partner-defection-history)
+
+  let old-defection-history array:item partner-defection-history ([who] of partner)
+  let partner-index ([who] of partner)
+  
   ifelse partner-defected? [
     ;; Remember that partner defected
     let new-defection-history (old-defection-history - 1)
-    set partner-defection-history (replace-item ([who] of partner)
-                                   partner-defection-history new-defection-history)
+    ;; using array set means you are just modifying the old array, not making a new one!
+    array:set partner-defection-history partner-index new-defection-history
     
-    ;; Remember that the positive recommenders lied...
+     ;; Remember that the positive recommenders lied...
     if positive-recommenders != nobody [
       foreach sort positive-recommenders [
-        let old-lying-history (item ([who] of ?) partner-lying-history)
-        let new-lying-history (old-lying-history - 1)
-        set partner-lying-history (replace-item ([who] of ?) 
-                                   partner-lying-history new-lying-history)
+        let old-lying-history array:item partner-lying-history ([who] of ?)
+        array:set partner-lying-history ([who] of ?) (old-lying-history - 1)
       ]
     ]
     
     ;; ... and the negative recommenders didn't
     if negative-recommenders != nobody [
       foreach sort negative-recommenders [
-        let old-lying-history (item ([who] of ?) partner-lying-history)
-        let new-lying-history (old-lying-history + 1)
-        set partner-lying-history (replace-item ([who] of ?) 
-                                   partner-lying-history new-lying-history)
+        let old-lying-history array:item partner-lying-history ([who] of ?)
+        array:set partner-lying-history ([who] of ?) (old-lying-history + 1)
       ]
     ]
     
-  ][
+  ][ ;; else partner cooperated
     ;; Remember that partner cooperated
     let new-defection-history (old-defection-history + 1)
-    set partner-defection-history (replace-item ([who] of partner) 
-                                   partner-defection-history new-defection-history)
+    array:set partner-defection-history partner-index new-defection-history
     
     ;; Remember that the negative recommenders lied...
     if negative-recommenders != nobody [
       foreach sort negative-recommenders [
-        let old-lying-history (item ([who] of ?) partner-lying-history)
-        let new-lying-history (old-lying-history - 1)
-        set partner-lying-history (replace-item ([who] of ?) 
-                                   partner-lying-history new-lying-history)
+        let old-lying-history array:item partner-lying-history ([who] of ?)
+        array:set partner-lying-history ([who] of ?) (old-lying-history - 1)
       ]
     ]
     
     ;; ... and the positive recommenders didn't
     if positive-recommenders != nobody [
       foreach sort positive-recommenders [
-        let old-lying-history (item ([who] of ?) partner-lying-history)
-        let new-lying-history (old-lying-history + 1)
-        set partner-lying-history (replace-item ([who] of ?) 
-                                   partner-lying-history new-lying-history)
+        let old-lying-history array:item partner-lying-history ([who] of ?)
+        array:set partner-lying-history ([who] of ?) (old-lying-history + 1)
       ]
     ]
   ]
@@ -768,7 +754,7 @@ prob-cooperate-yellow
 prob-cooperate-yellow
 0
 1
-1
+0.8
 .05
 1
 NIL
@@ -798,7 +784,7 @@ prob-lie-yellow
 prob-lie-yellow
 0
 1
-1
+0.2
 .05
 1
 NIL
@@ -813,7 +799,7 @@ prob-lie-green
 prob-lie-green
 0
 1
-1
+0.5
 .05
 1
 NIL
