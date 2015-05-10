@@ -89,8 +89,8 @@ to make-turtles
     
     ;; Initialize partner history lists -- default to
     ;; neutral reputation for every turtle
-    set partner-defection-history array:from-list n-values (global-num-turtles + 2) [0]
-    set partner-lying-history array:from-list n-values (global-num-turtles + 2) [0]
+    set partner-defection-history array:from-list n-values (global-num-turtles + 1) [0]
+    set partner-lying-history array:from-list n-values (global-num-turtles + 1) [0]
   ]
 end
 
@@ -166,9 +166,11 @@ to evolve
  set global-num-turtles-yellow 0
  set global-num-turtles-green 0
  
-  
-  foreach new-population-characteristics [
-    if array:item ? 0 = ones [
+ ;; extra safety to ensure we only breed as many as global-num-population 
+ let breeding-ctr 0
+ foreach new-population-characteristics [
+   if breeding-ctr < global-num-turtles [
+     if array:item ? 0 = ones [
        create-ones   (1) [ 
          set color red 
          ifelse (random-float 1) < mutation-chance [ ;;mutate
@@ -182,9 +184,10 @@ to evolve
            set forgiveness (random-float 10) + array:item ? 3 - 5 
          ]
        ]
-      set global-num-turtles-red global-num-turtles-red + 1
-    ]
-    if array:item ? 0 = twos [
+        set global-num-turtles-red global-num-turtles-red + 1
+        set breeding-ctr breeding-ctr + 1
+     ]
+     if array:item ? 0 = twos [
        create-twos   (1) [ 
          set color yellow 
          ifelse random-float 1 < mutation-chance [ ;;mutate
@@ -198,9 +201,10 @@ to evolve
            set forgiveness (random-float 10) + array:item ? 3 - 5 
          ]
        ]
-       set global-num-turtles-yellow global-num-turtles-yellow + 1
-    ]
-    if array:item ? 0 = threes [
+        set global-num-turtles-yellow global-num-turtles-yellow + 1
+        set breeding-ctr breeding-ctr + 1
+     ]
+     if array:item ? 0 = threes [
        create-threes   (1) [ 
          set color green 
          ifelse random-float 1 < mutation-chance [ ;;mutate
@@ -214,7 +218,10 @@ to evolve
            set forgiveness (random-float 10) + array:item ? 3 - 5 
          ]
        ]
-       set global-num-turtles-green global-num-turtles-green + 1   
+        set global-num-turtles-green global-num-turtles-green + 1  
+        set breeding-ctr breeding-ctr + 1 
+     ]
+     
     ]
   ]
   
