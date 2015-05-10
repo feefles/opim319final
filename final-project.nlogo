@@ -1,9 +1,7 @@
 extensions[array]
 ;; ----------- SIMULATION PARAMETERS ---------- 
 
-;; Define breeds. Can be used to simulate genetic, 
-;; linguistic, or other relatedness amongst a group 
-;; of turtles (aka a "cohort")
+
 breed [ones one]
 breed [twos two]
 breed [threes three]
@@ -39,6 +37,7 @@ turtles-own [
   ;; parameters, each cohort has own
   coop-prob
   lie-prob
+  forgiveness
   
   
   ;; Lists of integers representing agent's memory of previous
@@ -99,16 +98,19 @@ to make-breeds
     set color red 
     set coop-prob (random-float .1) + prob-cooperate-red - .05 ; random float on range of .1 around default
     set lie-prob (random-float .1) + prob-lie-red - .05 
+    set forgiveness forgiveness-red
     ]
   create-twos   (global-num-turtles-yellow) [
      set color yellow 
      set coop-prob (random-float .1) + prob-cooperate-yellow - .05 ; random integer on range of 10 around default prob
      set lie-prob (random-float .1) + prob-lie-yellow - .05 
+     set forgiveness forgiveness-yellow
      ]
   create-threes (global-num-turtles-green) [
      set color green 
      set coop-prob (random-float .1) + prob-cooperate-green - .05 ; random integer on range of 10 around default prob
      set lie-prob (random-float .1) + prob-lie-green - .05     
+     set forgiveness forgiveness-green
      ]
 end
 
@@ -117,7 +119,7 @@ end
 ;;breed each of the top half twice with a random partner
 to evolve
   let new-population-characteristics []
-  ;; each entry in form: [breed#, coop-prob, lie-prob]
+  ;; each entry in form: [breed#, coop-prob, lie-prob, forgiveness]
   
   let threshold global-num-turtles * genetic-pool-size ;;only breed with the top % of performers
   let ctr 0 
@@ -138,7 +140,8 @@ to evolve
         if breeding-style = "cohort" [set breeding-partner one-of [breed] of ?] ;;random partner of the same breed
         if breeding-style = "genetic-pool" [set breeding-partner one-of genetic-pool] ;;random partner from gene pool
         set new-char []
-        (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?)) (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of ?)) [
+        (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?) ([forgiveness] of ?)) 
+          (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of breeding-partner)([forgiveness] of breeding-partner)) [
           ifelse random-float 1 > .5 [
             set new-char lput ?1 new-char
           ] [
@@ -169,10 +172,12 @@ to evolve
          ifelse (random-float 1) < mutation-chance [ ;;mutate
            set coop-prob random-float 1
            set lie-prob random-float 1
+           set forgiveness (random-float 100)
          ]
          [
            set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
            set lie-prob (random-float .1) + array:item ? 2 - .03 
+           set forgiveness (random-float 10) + array:item ? 3 - 5 
          ]
        ]
       set global-num-turtles-red global-num-turtles-red + 1
@@ -183,10 +188,12 @@ to evolve
          ifelse random-float 1 < mutation-chance [ ;;mutate
            set coop-prob random-float 1
            set lie-prob random-float 1
+           set forgiveness (random-float 100)
          ]
          [
            set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
            set lie-prob (random-float .1) + array:item ? 2 - .03 
+           set forgiveness (random-float 10) + array:item ? 3 - 5 
          ]
        ]
        set global-num-turtles-yellow global-num-turtles-yellow + 1
@@ -197,10 +204,12 @@ to evolve
          ifelse random-float 1 < mutation-chance [ ;;mutate
            set coop-prob random-float 1
            set lie-prob random-float 1
+           set forgiveness (random-float 100)
          ]
          [
            set coop-prob (random-float .1) + array:item ? 1 - .03 ; random float on range of .1 around default
            set lie-prob (random-float .1) + array:item ? 2 - .03 
+           set forgiveness (random-float 10) + array:item ? 3 - 5 
          ]
        ]
        set global-num-turtles-green global-num-turtles-green + 1   
@@ -289,42 +298,23 @@ to partner-up
   ]  
 end
 
+
 ;; Agents decide their actions according to the following heuristic:
 ;; 1. Consult specified agentset to determine partner's reputation
-;;    which can be their reputation for cooperating, for telling the truth,
-;;    or a combination (sum) of both
+;;    which is a sum of their reputation for defecting and lying
 ;; 2. If partner's reputation is on average good or neutral, cooperate,
 ;;    else punish negative reputations by defecting against them
+;; They also have forgiveness: they may have a negative recommendation, but a forgiving 
+;; agent will still cooperate
 to select-action
-  if defection-heuristic = "defection reputation" [
-    let partner-defection-reputation (ask-defection-reputation define-agentset)
-     ifelse partner-defection-reputation < 0 [
-      set defect-now? true
-    ][
-      set defect-now? (random-float 1 > coop-prob)
-    ]
-  ]
+  let reputation (ask-reputation define-agentset)
   
-  if defection-heuristic = "lying reputation" [
-    let partner-lying-reputation (ask-lying-reputation define-agentset)  
-    ifelse partner-lying-reputation < 0 [
-      set defect-now? true
-    ][
-      set defect-now? (random-float 1 > coop-prob)
-    ]
+  ifelse reputation < (- forgiveness) [ 
+    set defect-now? true
+  ][
+    set defect-now? (random-float 1 > coop-prob)
   ]
-  
-  if defection-heuristic = "defection or lying" [
-    let partner-defection-reputation (ask-defection-reputation define-agentset)
-    let partner-lying-reputation (ask-lying-reputation define-agentset)
-    let combined-reputation partner-defection-reputation + partner-lying-reputation
-    
-    ifelse combined-reputation < 0 [
-      set defect-now? true
-    ][
-      set defect-now? (random-float 1 > coop-prob)
-    ]
-  ]
+
   
   if (not defect-now?) [
     set global-num-cooperating (global-num-cooperating + 1)
@@ -335,7 +325,6 @@ end
 ;; -> "own memory": agent consults only its own history lists
 ;; -> "breed cohort" agent consults turtles of the same breed 
 ;;      (if no breeds exist, then consults all turtles)
-;; -> "proximal cohort": consults turtles within a certain radius
 ;; -> "all turtles": consults all turtles
 to-report define-agentset
   if consult-agentset = "own memory" [
@@ -344,83 +333,47 @@ to-report define-agentset
   if consult-agentset = "breed cohort" [
     report turtles with [breed = [breed] of myself]
   ]
-  if consult-agentset = "proximal cohort" [
-    report turtles in-radius 8
-  ]
   if consult-agentset = "all turtles" [
     report turtles
   ]
 end
 
-to-report ask-defection-reputation [agents]
-  let defection-reputation []
+to-report ask-reputation [agents]
+  let reputation []
   
   foreach sort agents [
-    ifelse (lie-to-me? ?) [
-      let false-value random 3 - 1   ; random integer on [-1, 1]
-      
-      ;; Add to agentset based on recommendation
-      if false-value < 0 [
-        set negative-recommenders (turtle-set negative-recommenders ?)
+    ifelse (lie-to-me? ?) [ ;;lie to the agent
+      repeat 2 [ ;;do once for defection and once for lying
+        ifelse random 3 - 1 < 0 [ ;;choose a random recommendation to give for defection
+          set negative-recommenders (turtle-set negative-recommenders ?)
+          set reputation lput -1 reputation
+        ] 
+        [ ;; I randomly said he was good
+          set positive-recommenders (turtle-set positive-recommenders ?)
+          set reputation lput 1 reputation
+        ]
+        set global-num-lying (global-num-lying + 1)
       ]
-      if false-value > 0 [
-        set positive-recommenders (turtle-set positive-recommenders ?)
+    ] [
+      ifelse (item ([who] of partner) ([partner-defection-history] of ?)) < 0 [
+         set negative-recommenders (turtle-set negative-recommenders ?)
+         set reputation lput -1 reputation
       ]
-      set defection-reputation (lput false-value defection-reputation)
-      set global-num-lying (global-num-lying + 1)
-    ][
-      let true-value (item ([who] of partner) ([partner-defection-history] of ?))
-      
-      ;; Add to agentset based on recommendation
-      if true-value < 0 [
-        set negative-recommenders (turtle-set negative-recommenders ?)
+      [
+          set positive-recommenders (turtle-set positive-recommenders ?)
+          set reputation lput 1 reputation
       ]
-      if true-value > 0 [
-        set positive-recommenders (turtle-set positive-recommenders ?)
+       ifelse (item ([who] of partner) ([partner-lying-history] of ?)) < 0 [
+         set negative-recommenders (turtle-set negative-recommenders ?)
+         set reputation lput -1 reputation
       ]
-      set defection-reputation (lput true-value defection-reputation)
+      [
+          set positive-recommenders (turtle-set positive-recommenders ?)
+          set reputation lput 1 reputation
+      ]
     ]
-    
-    set global-num-consulted (global-num-consulted + 1)
   ]
-  
-  report sum defection-reputation
-end
-
-to-report ask-lying-reputation [agents]
-  let lying-reputation []
-  
-  foreach sort agents [
-    ifelse (lie-to-me? ?) [
-      let false-value random 3 - 1   ; random integer on [-1, 1]
-      
-      ;; Add to agentset based on recommendation
-      if false-value < 0 [
-        set negative-recommenders (turtle-set negative-recommenders ?)
-      ]
-      if false-value > 0 [
-        set positive-recommenders (turtle-set positive-recommenders ?)
-      ]
-      
-      set lying-reputation (lput false-value lying-reputation)
-      set global-num-lying (global-num-lying + 1)
-    ][
-      let true-value (item ([who] of partner) ([partner-lying-history] of ?))
-      
-      ;; Add to agentset based on recommendation
-      if true-value < 0 [
-        set negative-recommenders (turtle-set negative-recommenders ?)
-      ]
-      if true-value > 0 [
-        set positive-recommenders (turtle-set positive-recommenders ?)
-      ]
-      set lying-reputation (lput true-value lying-reputation)
-    ]
-    
-    set global-num-consulted (global-num-consulted + 1)
-  ]
-  
-  report sum lying-reputation
+  report sum reputation
 end
 
 ;; Returns true criteria for lying-heuristic are met -- options:
@@ -489,7 +442,6 @@ to update-histories
         let new-lying-history (old-lying-history - 1)
         set partner-lying-history (replace-item ([who] of ?) 
                                    partner-lying-history new-lying-history)
-        set global-num-accused-lying (global-num-accused-lying + 1)
       ]
     ]
     
@@ -516,7 +468,6 @@ to update-histories
         let new-lying-history (old-lying-history - 1)
         set partner-lying-history (replace-item ([who] of ?) 
                                    partner-lying-history new-lying-history)
-        set global-num-accused-lying (global-num-accused-lying + 1)
       ]
     ]
     
@@ -554,14 +505,6 @@ to-report percent-lying
     report 0
   ]
 end
-
-to-report percent-accused-lying
-  ifelse global-num-consulted > 0 [
-    report global-num-accused-lying / global-num-consulted
-  ][
-    report 0
-  ]
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 750
@@ -592,9 +535,9 @@ ticks
 
 BUTTON
 12
-215
+259
 78
-248
+292
 NIL
 setup
 NIL
@@ -609,9 +552,9 @@ NIL
 
 BUTTON
 98
-215
+259
 161
-248
+292
 NIL
 go
 T
@@ -626,13 +569,13 @@ NIL
 
 CHOOSER
 42
-443
+487
 206
-488
+532
 consult-agentset
 consult-agentset
-"own memory" "breed cohort" "proximal cohort" "all turtles"
-0
+"own memory" "breed cohort" "all turtles"
+2
 
 SLIDER
 14
@@ -651,29 +594,19 @@ HORIZONTAL
 
 CHOOSER
 40
-508
+552
 210
-553
+597
 lying-heuristic
 lying-heuristic
 "never" "randomly" "lie to outsiders"
-2
-
-CHOOSER
-39
-572
-213
-617
-defection-heuristic
-defection-heuristic
-"defection reputation" "lying reputation" "defection or lying"
-2
+1
 
 PLOT
 44
-272
+316
 244
-422
+466
 Cooperation
 Iterations
 % cooperating
@@ -711,7 +644,7 @@ prob-lie-red
 prob-lie-red
 0
 .95
-0.6
+0.4
 0.1
 1
 NIL
@@ -719,9 +652,9 @@ HORIZONTAL
 
 BUTTON
 185
-215
+259
 256
-248
+292
 NIL
 evolve
 NIL
@@ -803,7 +736,7 @@ prob-lie-yellow
 prob-lie-yellow
 0
 1
-0.8
+0.05
 .05
 1
 NIL
@@ -818,7 +751,7 @@ prob-lie-green
 prob-lie-green
 0
 1
-0.75
+0.5
 .05
 1
 NIL
@@ -826,9 +759,9 @@ HORIZONTAL
 
 MONITOR
 262
-272
+316
 423
-317
+361
 NIL
 global-num-turtles-red
 17
@@ -837,9 +770,9 @@ global-num-turtles-red
 
 MONITOR
 260
-334
+378
 438
-379
+423
 NIL
 global-num-turtles-yellow
 17
@@ -848,9 +781,9 @@ global-num-turtles-yellow
 
 MONITOR
 258
-390
+434
 433
-435
+479
 NIL
 global-num-turtles-green
 17
@@ -859,19 +792,19 @@ global-num-turtles-green
 
 CHOOSER
 466
-273
+317
 604
-318
+362
 genetic-pool-size
 genetic-pool-size
 0.1 0.25 0.5
-2
+0
 
 SLIDER
 467
-334
+378
 639
-367
+411
 mutation-chance
 mutation-chance
 0
@@ -884,20 +817,20 @@ HORIZONTAL
 
 INPUTBOX
 466
-379
+423
 621
-439
+483
 epoch-length
-1000
+100
 1
 0
 Number
 
 BUTTON
 278
-215
+259
 378
-248
+292
 NIL
 evolve-run
 T
@@ -912,13 +845,58 @@ NIL
 
 CHOOSER
 467
-455
+499
 617
-500
+544
 breeding-style
 breeding-style
 "random-partner" "cohort" "genetic-pool"
-2
+0
+
+SLIDER
+14
+208
+186
+241
+forgiveness-red
+forgiveness-red
+0
+100
+17
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+251
+209
+423
+242
+forgiveness-yellow
+forgiveness-yellow
+0
+100
+25
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+501
+211
+673
+244
+forgiveness-green
+forgiveness-green
+0
+100
+45
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 # Social Memory, Reputation, and Deception in the Multi-Player Iterated Prisoner's Dilemma
