@@ -427,10 +427,7 @@ end
 ;; -> "never": always returns false
 ;; -> "randomly": returns true with certain probability
 ;; -> "lie to outsiders": returns true questioner breed != agent breed
-;; -> "previously defected": returns true if agent remembers questioner
-;;      has defected against that agent in the past
-;; -> "previously lied": returns true if agent remmebers questioner
-;;      has lied to that agent in the past
+
 to-report lie-to-me? [agent]
   if lying-heuristic = "never" [
     report false
@@ -441,12 +438,6 @@ to-report lie-to-me? [agent]
 
   if lying-heuristic = "lie to outsiders" [
     report breed != [breed] of agent
-  ]
-  if lying-heuristic = "previously defected" [
-    report (item ([who] of agent) partner-defection-history) < 0
-  ]
-  if lying-heuristic = "previously lied" [
-    report (item ([who] of agent) partner-lying-history) < 0
   ]
 end
 
@@ -665,7 +656,7 @@ CHOOSER
 553
 lying-heuristic
 lying-heuristic
-"never" "randomly" "lie to outsiders" "previously defected" "previously lied"
+"never" "randomly" "lie to outsiders"
 2
 
 CHOOSER
