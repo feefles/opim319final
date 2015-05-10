@@ -115,7 +115,7 @@ to make-breeds
 end
 
 
-;;------------ EVOLUTION PROCEDURES -----------
+;;------------ EVOLUTION PROCEDURE -----------
 ;;breed each of the top half twice with a random partner
 to evolve
   let new-population-characteristics []
@@ -342,18 +342,27 @@ to-report ask-reputation [agents]
   let reputation []
   
   foreach sort agents [
+    let defection-recommendation (item ([who] of partner) ([partner-defection-history] of ?))
+    let lying-recommendation (item ([who] of partner) ([partner-lying-history] of ?))
+    
+      
     ifelse (lie-to-me? ?) [ ;;lie to the agent
-      repeat 2 [ ;;do once for defection and once for lying
-        ifelse random 3 - 1 < 0 [ ;;choose a random recommendation to give for defection
-          set negative-recommenders (turtle-set negative-recommenders ?)
-          set reputation lput -1 reputation
-        ] 
-        [ ;; I randomly said he was good
-          set positive-recommenders (turtle-set positive-recommenders ?)
-          set reputation lput 1 reputation
-        ]
-        set global-num-lying (global-num-lying + 1)
+      ifelse defection-recommendation > 0 [ ;; do the opposite 
+        set negative-recommenders (turtle-set negative-recommenders ?)
+        set reputation lput -1 reputation
+      ] [
+        set positive-recommenders (turtle-set positive-recommenders ?)
+        set reputation lput 1 reputation
       ]
+      ifelse lying-recommendation > 0 [ ;; do the opposite 
+        set negative-recommenders (turtle-set negative-recommenders ?)
+        set reputation lput -1 reputation
+      ] [
+        set positive-recommenders (turtle-set positive-recommenders ?)
+        set reputation lput 1 reputation
+      ]
+      set global-num-lying (global-num-lying + 1)
+
     ] [
       ifelse (item ([who] of partner) ([partner-defection-history] of ?)) < 0 [
          set negative-recommenders (turtle-set negative-recommenders ?)
@@ -575,7 +584,7 @@ CHOOSER
 consult-agentset
 consult-agentset
 "own memory" "breed cohort" "all turtles"
-2
+1
 
 SLIDER
 14
@@ -600,7 +609,7 @@ CHOOSER
 lying-heuristic
 lying-heuristic
 "never" "randomly" "lie to outsiders"
-1
+2
 
 PLOT
 44
@@ -629,7 +638,7 @@ prob-cooperate-red
 prob-cooperate-red
 0
 1
-0.2
+0.45
 0.05
 1
 NIL
@@ -644,8 +653,8 @@ prob-lie-red
 prob-lie-red
 0
 .95
-0.4
-0.1
+0.6
+0.05
 1
 NIL
 HORIZONTAL
@@ -706,7 +715,7 @@ prob-cooperate-yellow
 prob-cooperate-yellow
 0
 1
-0.2
+0.85
 .05
 1
 NIL
@@ -721,7 +730,7 @@ prob-cooperate-green
 prob-cooperate-green
 0
 1
-0.15
+0.6
 .05
 1
 NIL
@@ -736,7 +745,7 @@ prob-lie-yellow
 prob-lie-yellow
 0
 1
-0.05
+0.35
 .05
 1
 NIL
@@ -798,7 +807,7 @@ CHOOSER
 genetic-pool-size
 genetic-pool-size
 0.1 0.25 0.5
-0
+2
 
 SLIDER
 467
@@ -862,7 +871,7 @@ forgiveness-red
 forgiveness-red
 0
 100
-17
+0
 1
 1
 NIL
@@ -877,7 +886,7 @@ forgiveness-yellow
 forgiveness-yellow
 0
 100
-25
+0
 1
 1
 NIL
@@ -892,7 +901,7 @@ forgiveness-green
 forgiveness-green
 0
 100
-45
+0
 1
 1
 NIL
