@@ -54,10 +54,7 @@ turtles-own [
   
   ;; Agentsets containing those consulted who said partner had a good
   ;; reputation, and those who said the partner had a bad reputation.
-  ;; Used in order to determine which agents lied about the partner
-  ;; (even if unintentional--could be misinformed but no subjective way
-  ;; of knowing)
-  ;; Warning: this is a bit hacky and likely very inefficient
+
   positive-recommenders
   negative-recommenders
 ]
@@ -543,19 +540,41 @@ end
 
 to-report avg-cooperation
   ;; in form [red, yellow, green]
-  report (list (precision (mean [coop-prob] of ones) 3) (precision (mean [coop-prob] of twos) 3) (precision (mean [coop-prob] of threes) 3))
+  let ret []
+  foreach (list ones twos threes) [
+    ifelse count ? = 0 [
+      set ret lput 0 ret
+    ] [
+      set ret lput (precision (mean [coop-prob] of ?) 3) ret
+    ]
+  ]
+  report ret
 end
 
 to-report avg-lie
-  ;; in form [red, yellow, green]
-  report (list (precision (mean [lie-prob] of ones) 3) (precision (mean [lie-prob] of twos) 3) (precision (mean [lie-prob] of threes) 3))
-  
+    ;; in form [red, yellow, green]
+  let ret []
+  foreach (list ones twos threes) [
+    ifelse count ? = 0 [
+      set ret lput 0 ret
+    ] [
+      set ret lput (precision (mean [lie-prob] of ?) 3) ret
+    ]
+  ]
+  report ret
 end
 
 to-report avg-forgiveness
-  ;; in form [red, yellow, green]
-  report (list (precision (mean [forgiveness] of ones) 3) (precision (mean [forgiveness] of twos) 3) (precision (mean [forgiveness] of threes) 3))
-  
+    ;; in form [red, yellow, green]
+  let ret []
+  foreach (list ones twos threes) [
+    ifelse count ? = 0 [
+      set ret lput 0 ret
+    ] [
+      set ret lput (precision (mean [forgiveness] of ?) 3) ret
+    ]
+  ]
+  report ret
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -876,7 +895,7 @@ INPUTBOX
 727
 435
 epoch-length
-100
+50
 1
 0
 Number
@@ -1034,6 +1053,8 @@ As implied, agents consult all other `turtles` for information.
 
 Agents gather information from the specified agentset. However, they also have a forgiveness factor built in. Even in the event that the recommendation was negative, the agent may still cooperate, depending on how forgiving they are. In this case, forgiveness is a threshold for how badly recommended someone can be before they decide to defect. It would also be interesting to explore forgiveness as a percentage - an agent could forgive a bad player a certain number of times.
 
+Also, this differs from the original model, because the lying heuristic no longer has randomness. Once an agent decides to lie (according to the lie prob), they will purposely do the opposite of what they think would do. This makes the game more interesting to look at through an evolutionary lens, since populations are now more deliberate in their lying, and these traits are passed on. 
+
 ### EVOLVING
 There are several parameters governing the evolution. 
 
@@ -1056,33 +1077,25 @@ The partner is randomly chosen from the same cohort
 The partner is randomly chosen from the pool, which is defined by the `genetic-pool-size`
 
 
-## THINGS TO NOTICE
+## Conclusions
 
-The default rate of cooperation does affect the initial levels of trust between agents, but is not an accurate predictor of the equilibrium rate of cooperation (as *t* approaches infinity) in all cases. Under some conditions, cooperation is achieved regardless of the default rate, and under others the smallest deviation from 100% cooperation is enough to sow mistrust and collapse the system of cooperativity.
+There are a number of things, which I outline in a separate presentation. The breeding process is set up to represent actual things that happen in the real world. Using evolution definitely seems to help cooperation the vast majority of the time, but there are a lot of different factors that could not be tested extensively. 
+Across all experiments, characteristics evolved to reflect what we expected: much higher rates of cooperation. However, lying also increased, which is somewhat surprising, since we might expect that people should lie less in order to help their teammates. Also, we may have expected that people would lie less, so that they would be punished less in future interactions. This may be why the `epoch time` comes in: if there is a short epoch time, a liar or defector may not be punished as much, so their negative traits could continue in the pool.  
 
-The speed at which an equilibrium is approached varies across parameters as well, demonstrating that lying can have a destabilizing influence on a society. In particular, when agents are consulting a larger cohort, for example, `all turtles`, it can take longer for the turtles to have had a sufficient number of interactions to benefit from consulting one another. 
+## Extensions
 
-Punishing defection, rather than lying or a combination of the two, is most effective at maintaining a cooperative equilibrium in the face of random lying. Agents are more likely to be accused of lying (regardless of whether they are actually lying) when `partner`s' reputation for dishonesty is asked when compared to reputaton for defection. This is likely because for every interaction that results in information about one agent's defection, there is an entire cohort of agents whose reputations for lying are updated.
-
-Finally, when agents are programmed to lie to outsiders (i.e. those of a different breed) there is a significant limit to the equilibrium rate of cooperation in the world, when compared to the rate of cooperation when no lying takes place (simulating interactions *within* a society, rather than *between* societies). 
-
-## EXTENDING THE MODEL
-
-This model's biggest shortcoming is that it doesn’t account for strategic uses of lying. Agents randomly select an integer from { -1, 0, 1 } and report that, but this limits both the magnitude of lying that can take place; e.g. an agent could report that `partner` has defected against it 5 times rather than just once. In addiiton, the quality of the lie might be strategically varied, such as agents always informing others that a member of their own cohort has a good reputation, in an attempt to exploit agents outside of its cohort. Extending the types and magnitudes of lies that can take place would likely have interesting results and more accurately reflect the strategic value of lying in various agent-agent and agent-group relations.
-
-Agents also have no opportunity to express contrition or to make up for a previous lie or defection. In nature, we observe a strong instinctive pressure to atone for wrongdoing, usually as a result of social exclusion or punishment. If agents were able to apologize or otherwise repair their relations with others, there may be increased cooperation instead of the mutual defections ad-infinitum that tit-for-tat strategies may encourage.
-
-In this model, agents have infinite memory space and duration, which is an unrealistic assumption. It is unlikely that amongst larger groups of agents that each agent could keep track of all of its previous partners, and so the amount of information available in the "social memory" is likely larger than would be found in the real world. There also might be a limit to the number of previous interactions that an agent remembers, so that an agent who defects on tick 1 might not be punished by that agent when they meet again during tick 99. (However, the social memory makes reputation last much longer than it would amongst agents who did not communicate with each other, since the agent can be immediately punished by another partner on tick 2.)
-
-Finally, another strategic use of partner reputation might be the ability to balk, or shun the other agent, or otherwise refuse to play the game for fear of receiving the "sucker's payoff" if an agent has a strong reputation for defection. This might afford cooperative agents an advantage since they can choose to cooperate amongst themselves only, and leave the noncooperative agents to undermine each other.
+Having only 3 genomes may not be the best for a genetic algorithm. It would definitely be worth it to explore the addition of more genomes. One that Max discussed in his original model would also apply here very well: the idea of limited social memory. An agent may not actually remember all past encounters, so having a memory length that is shorter than the epoch time could be interesting to observe in terms of evolution. We may think that having a long memory is good, but it may over punish some agents based on initial interactions. Since there is so much randomness, agents that defect in the beginning are penalized more harshly in the long run than those that defect later in the game (merely based on percentages). 
 
 
-## RELATED MODELS
+
+
+
+## Related Models
 
 * NetLogo PD N-Person Iterated model.  (See credits)
 
-## CREDITS AND REFERENCES
-
+## Credits and References
+* Max McCarthy for providing a lot of starter code for this project
 * Axelrod, R. (1984). The Evolution of Cooperation. Basic Books, NY. p. 23.
 * Wilensky, U. (2002). NetLogo PD N-Person Iterated model. http://ccl.northwestern.edu/netlogo/models/PDN-PersonIterated. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 * Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
