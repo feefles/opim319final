@@ -20,7 +20,7 @@ globals [
   global-num-turtles-yellow
   global-num-turtles-green
   
-  global-num-cooperating-red
+  global-num-cooperating-red ;;for reporting purposes
   global-num-cooperating-yellow
   global-num-cooperating-green
   
@@ -116,6 +116,12 @@ end
 
 ;;------------ EVOLUTION PROCEDURE -----------
 
+
+;; Evolves the population according to parameters
+;; breeding-type
+;; genetic-pool-size
+;; mutation
+
 to evolve
   let new-population-characteristics []
   ;; each entry in form: [breed#, coop-prob, lie-prob, forgiveness]
@@ -139,6 +145,7 @@ to evolve
         if breeding-style = "cohort" [set breeding-partner one-of [breed] of ?] ;;random partner of the same breed
         if breeding-style = "genetic-pool" [set breeding-partner one-of genetic-pool] ;;random partner from gene pool
         set new-char []
+        ;; build the new agent's genome, take randomly from both parents
         (foreach (list ([breed] of ?)([lie-prob] of ?) ([coop-prob] of ?) ([forgiveness] of ?)) 
           (list ([breed] of breeding-partner)([lie-prob] of breeding-partner) ([coop-prob] of breeding-partner)([forgiveness] of breeding-partner)) [
           ifelse random-float 1 > .5 [
@@ -578,10 +585,10 @@ to-report avg-forgiveness
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-750
-25
-1133
-429
+751
+13
+1134
+417
 16
 16
 11.303030303030303
@@ -605,10 +612,10 @@ ticks
 30.0
 
 BUTTON
-12
-259
-78
-292
+13
+221
+79
+254
 NIL
 setup
 NIL
@@ -623,9 +630,9 @@ NIL
 
 BUTTON
 98
-259
+222
 161
-292
+255
 NIL
 go
 T
@@ -640,9 +647,9 @@ NIL
 
 CHOOSER
 11
-484
+447
 175
-529
+492
 consult-agentset
 consult-agentset
 "own memory" "breed cohort" "all turtles"
@@ -650,9 +657,9 @@ consult-agentset
 
 SLIDER
 14
-51
+14
 186
-84
+47
 num-turtles-red
 num-turtles-red
 0
@@ -665,9 +672,9 @@ HORIZONTAL
 
 CHOOSER
 9
-549
+512
 179
-594
+557
 lying-heuristic
 lying-heuristic
 "never" "randomly" "lie to outsiders"
@@ -675,9 +682,9 @@ lying-heuristic
 
 PLOT
 13
-313
+276
 213
-463
+426
 Cooperation
 Iterations
 % cooperating
@@ -696,9 +703,9 @@ PENS
 
 SLIDER
 12
-104
-245
-137
+67
+188
+100
 prob-cooperate-red
 prob-cooperate-red
 0
@@ -711,9 +718,9 @@ HORIZONTAL
 
 SLIDER
 12
-155
+118
 189
-188
+151
 prob-lie-red
 prob-lie-red
 0
@@ -726,9 +733,9 @@ HORIZONTAL
 
 BUTTON
 185
-259
+222
 256
-292
+255
 NIL
 evolve
 NIL
@@ -743,9 +750,9 @@ NIL
 
 SLIDER
 250
-50
-423
-83
+13
+443
+46
 num-turtles-yellow
 num-turtles-yellow
 0
@@ -758,9 +765,9 @@ HORIZONTAL
 
 SLIDER
 505
-50
+13
 677
-83
+46
 num-turtles-green
 num-turtles-green
 0
@@ -773,9 +780,9 @@ HORIZONTAL
 
 SLIDER
 250
-104
-497
-137
+67
+441
+100
 prob-cooperate-yellow
 prob-cooperate-yellow
 0
@@ -788,9 +795,9 @@ HORIZONTAL
 
 SLIDER
 504
-105
-748
-138
+68
+680
+101
 prob-cooperate-green
 prob-cooperate-green
 0
@@ -803,9 +810,9 @@ HORIZONTAL
 
 SLIDER
 250
-157
-448
-190
+120
+441
+153
 prob-lie-yellow
 prob-lie-yellow
 0
@@ -818,9 +825,9 @@ HORIZONTAL
 
 SLIDER
 502
-157
-698
-190
+120
+681
+153
 prob-lie-green
 prob-lie-green
 0
@@ -833,9 +840,9 @@ HORIZONTAL
 
 MONITOR
 231
-313
+276
 309
-358
+321
 red turtles
 global-num-turtles-red
 17
@@ -844,9 +851,9 @@ global-num-turtles-red
 
 MONITOR
 229
-375
+338
 311
-420
+383
 yellow turtles
 global-num-turtles-yellow
 17
@@ -855,9 +862,9 @@ global-num-turtles-yellow
 
 MONITOR
 227
-431
+394
 314
-476
+439
 green turtles
 global-num-turtles-green
 17
@@ -866,9 +873,9 @@ global-num-turtles-green
 
 CHOOSER
 572
-269
-710
-314
+232
+726
+277
 genetic-pool-size
 genetic-pool-size
 0.1 0.25 0.5
@@ -876,9 +883,9 @@ genetic-pool-size
 
 SLIDER
 573
-330
-745
-363
+293
+728
+326
 mutation-chance
 mutation-chance
 0
@@ -891,9 +898,9 @@ HORIZONTAL
 
 INPUTBOX
 572
-375
+338
 727
-435
+398
 epoch-length
 50
 1
@@ -902,9 +909,9 @@ Number
 
 BUTTON
 278
-259
+222
 378
-292
+255
 NIL
 evolve-run
 T
@@ -919,9 +926,9 @@ NIL
 
 CHOOSER
 573
-451
+414
 723
-496
+459
 breeding-style
 breeding-style
 "random-partner" "cohort" "genetic-pool"
@@ -929,9 +936,9 @@ breeding-style
 
 SLIDER
 14
-208
+171
 186
-241
+204
 forgiveness-red
 forgiveness-red
 0
@@ -944,9 +951,9 @@ HORIZONTAL
 
 SLIDER
 251
-209
-423
-242
+172
+439
+205
 forgiveness-yellow
 forgiveness-yellow
 0
@@ -959,9 +966,9 @@ HORIZONTAL
 
 SLIDER
 501
-211
-673
-244
+174
+682
+207
 forgiveness-green
 forgiveness-green
 0
@@ -974,9 +981,9 @@ HORIZONTAL
 
 MONITOR
 342
-312
-469
-357
+275
+524
+320
 NIL
 avg-cooperation
 2
@@ -985,9 +992,9 @@ avg-cooperation
 
 MONITOR
 342
-376
-468
-421
+339
+525
+384
 NIL
 avg-lie
 17
@@ -996,9 +1003,9 @@ avg-lie
 
 MONITOR
 344
-434
-520
-479
+397
+526
+442
 NIL
 avg-forgiveness
 17
@@ -1087,7 +1094,7 @@ Across all experiments, characteristics evolved to reflect what we expected: muc
 Having only 3 genomes may not be the best for a genetic algorithm. It would definitely be worth it to explore the addition of more genomes. One that Max discussed in his original model would also apply here very well: the idea of limited social memory. An agent may not actually remember all past encounters, so having a memory length that is shorter than the epoch time could be interesting to observe in terms of evolution. We may think that having a long memory is good, but it may over punish some agents based on initial interactions. Since there is so much randomness, agents that defect in the beginning are penalized more harshly in the long run than those that defect later in the game (merely based on percentages). 
 
 
-
+There are certain design decisions that were made that may not be completely accurate, such as the mutation scheme. It may make more sense to mutate attributes randomly, rather than make the child a "mutant". Also, there could be more exploration with the "probing" parameters. When setting default probabilities for breeds, they are all initialized within some delta of that value. It doesn't make a lot of sense for that to be a genome, but could be a customizable parameter for the user.  
 
 
 ## Related Models
